@@ -3,7 +3,7 @@
     <form @submit.prevent="handleSubmit">
         <div class="form-data">
             <label for="email">Email:</label>
-            <input type="email" id="email" v-model.lazy="formData.email" class="form-control" />
+            <input type="text" id="email" v-model.lazy="formData.email" class="form-control" />
             <p v-if="formErrors.email" class="error">{{ formErrors.email }}</p>
         </div>
 
@@ -28,9 +28,11 @@
             <input type="text" v-model="skillInput" @keyup.enter="addSkill" @keypress="checkForComma" class="form-control" />
             <p v-if="formErrors.skills" class="error">{{ formErrors.skills }}</p>
             <ul class="skills">
-                <li v-for="(skill, index) in formData.skills" :key="index">
-                    {{ skill }}
-                    <DeleteIcon @click="removeSkill(index)" />
+                <li v-for="(skill, index) in formData.skills" :key="index" class="skill-item">
+                    <div @click="editSkill(index)" class="li-text">
+                        {{ skill }}
+                    </div>
+                    <DeleteIcon @click.stop="removeSkill(index)" />
                 </li>
             </ul>
         </div>
@@ -38,7 +40,7 @@
         <div class="term-condition">
             <div class="term-checkbox">
                 <input type="checkbox" id="terms" v-model="formData.terms" />
-                <label for="terms">Accept Terms & Conditions</label>
+                <label for="terms" class="term-text">Accept Terms & Conditions</label>
             </div>
             <p v-if="formErrors.terms" class="error">{{ formErrors.terms }}</p>
         </div>
@@ -69,14 +71,25 @@ export default {
                 terms: false,
             },
             skillInput: "",
-            submittedData: null,
+            submittedData: [],
             formErrors: {},
+            editingIndex: null,
         };
     },
     methods: {
+        editSkill(index) {
+            this.skillInput = this.formData.skills[index];
+            this.removeSkill(index);
+            this.editingIndex = index;
+        },
         addSkill() {
             if (this.skillInput.trim() !== "") {
-                this.formData.skills.push(this.skillInput.trim());
+                if (this.editingIndex !== null) {
+                    this.formData.skills.splice(this.editingIndex, 0, this.skillInput.trim());
+                    this.editingIndex = null;
+                } else {
+                    this.formData.skills.push(this.skillInput.trim());
+                }
                 this.skillInput = "";
             }
         },
@@ -93,12 +106,24 @@ export default {
             this.formErrors = this.validateFormData();
             if (Object.keys(this.formErrors).length === 0) {
                 this.submittedData = JSON.stringify(this.formData, null, 2);
+                this.formData = {
+                    email: "",
+                    password: "",
+                    role: "",
+                    skills: [],
+                    terms: false,
+                };
             }
         },
         validateFormData() {
             const errors = {};
             if (!this.formData.email) {
                 errors.email = "Email is required";
+            } else {
+                const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                if (!emailPattern.test(this.formData.email)) {
+                    errors.email = "Please enter a valid email address";
+                }
             }
             if (!this.formData.password) {
                 errors.password = "Password is required";
@@ -147,7 +172,7 @@ label {
 
 div p {
     text-align: start;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
 }
 
 .form-data {
@@ -181,6 +206,18 @@ input[type=checkbox] {
     display: flex;
     align-items: center;
     gap: 10px;
+    cursor: pointer;
+}
+.li-text{
+    margin-top: 3px;
+}
+
+.skill-item div {
+    flex-grow: 1;
+}
+
+.DeleteIcon {
+    cursor: pointer;
 }
 
 button[type=submit] {
@@ -204,7 +241,7 @@ ul {
 li {
     margin-bottom: 10px;
     background-color: #fbd8d8;
-    padding: 7px 12px;
+    padding: 7px 35px;
     border-radius: 15px;
     color: black;
 }
@@ -235,6 +272,6 @@ button {
 
 .term-condition label {
     margin-left: 2px;
-    margin-top: 2px;
+    margin-top: 5px;
 }
 </style>
