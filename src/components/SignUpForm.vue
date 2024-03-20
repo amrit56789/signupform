@@ -1,38 +1,49 @@
 <template>
 <div class="form">
     <form @submit.prevent="handleSubmit">
-        <div>
+        <div class="form-data">
             <label for="email">Email:</label>
-            <input type="email" id="email" v-model="formData.email" required>
+            <input type="email" id="email" v-model.lazy="formData.email" class="form-control" />
+            <p v-if="formErrors.email" class="error">{{ formErrors.email }}</p>
         </div>
-        <div>
+
+        <div class="form-data">
             <label for="password">Password:</label>
-            <input type="password" id="password" v-model="formData.password" required pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[\W]).{8,}">
+            <input type="password" id="password" v-model.lazy="formData.password" class="form-control" />
+            <p v-if="formErrors.password" class="error">{{ formErrors.password }}</p>
         </div>
-        <div>
+
+        <div class="form-data">
             <label for="role">Role:</label>
-            <select id="role" v-model="formData.role" required>
+            <select id="role" v-model="formData.role" class="form-control">
                 <option disabled value="">Please select one</option>
                 <option>Web Developer</option>
                 <option>Web Designer</option>
             </select>
+            <p v-if="formErrors.role" class="error">{{ formErrors.role }}</p>
         </div>
-        <div>
+
+        <div class="form-data">
             <label>Skills:</label>
-            <input type="text" v-model="skillInput" @keyup.enter="addSkill" @keypress="checkForComma" />
+            <input type="text" v-model="skillInput" @keyup.enter="addSkill" @keypress="checkForComma" class="form-control" />
+            <p v-if="formErrors.skills" class="error">{{ formErrors.skills }}</p>
             <ul class="skills">
                 <li v-for="(skill, index) in formData.skills" :key="index">
                     {{ skill }}
-                    <svg xmlns="http://www.w3.org/2000/svg" height="0.8rem" viewBox="0 0 448 512" @click="removeSkill(index)">
-                        <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z" /></svg>
+                    <DeleteIcon @click="removeSkill(index)" />
                 </li>
             </ul>
         </div>
+
         <div class="term-condition">
-            <input type="checkbox" id="terms" v-model="formData.terms" required>
-            <label for="terms">Accept Terms & Conditions</label>
+            <div class="term-checkbox">
+                <input type="checkbox" id="terms" v-model="formData.terms" />
+                <label for="terms">Accept Terms & Conditions</label>
+            </div>
+            <p v-if="formErrors.terms" class="error">{{ formErrors.terms }}</p>
         </div>
-        <button type="submit">Create an Account</button>
+
+        <button type="submit" class="submit-btn">Create an Account</button>
     </form>
     <div v-if="submittedData">
         <h3>Submitted Data:</h3>
@@ -42,29 +53,35 @@
 </template>
 
 <script>
+import DeleteIcon from './DeleteIcon.vue'
+
 export default {
+    components: {
+        DeleteIcon
+    },
     data() {
         return {
             formData: {
-                email: '',
-                password: '',
-                role: '',
+                email: "",
+                password: "",
+                role: "",
                 skills: [],
                 terms: false,
             },
-            skillInput: '',
+            skillInput: "",
             submittedData: null,
+            formErrors: {},
         };
     },
     methods: {
         addSkill() {
-            if (this.skillInput.trim() !== '') {
+            if (this.skillInput.trim() !== "") {
                 this.formData.skills.push(this.skillInput.trim());
-                this.skillInput = '';
+                this.skillInput = "";
             }
         },
         checkForComma(event) {
-            if (event.key === ',' || event.key === 'Enter') {
+            if (event.key === "," || event.key === "Enter") {
                 event.preventDefault();
                 this.addSkill();
             }
@@ -73,8 +90,36 @@ export default {
             this.formData.skills.splice(index, 1);
         },
         handleSubmit() {
-            this.submittedData = this.formData;
+            this.formErrors = this.validateFormData();
+            if (Object.keys(this.formErrors).length === 0) {
+                this.submittedData = JSON.stringify(this.formData, null, 2);
+            }
         },
+        validateFormData() {
+            const errors = {};
+            if (!this.formData.email) {
+                errors.email = "Email is required";
+            }
+            if (!this.formData.password) {
+                errors.password = "Password is required";
+            } else {
+                const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{8,}$/;
+                if (!passwordPattern.test(this.formData.password)) {
+                    errors.password = "Password must be at least 8 characters long, include at least 1 special character, 1 number, 1 uppercase, and 1 lowercase letter.";
+                }
+            }
+
+            if (!this.formData.role) {
+                errors.role = "Role is required";
+            }
+            if (this.formData.skills.length === 0) {
+                errors.skills = "At least one skill is required";
+            }
+            if (!this.formData.terms) {
+                errors.terms = "Please accept the terms & conditions";
+            }
+            return errors;
+        }
     },
 };
 </script>
@@ -83,13 +128,13 @@ export default {
 form {
     max-width: 400px;
     margin: auto;
-    padding: 50px 30px;
+    padding: 20px 30px;
     border: 1px solid #ccc;
     border-radius: 5px;
 }
 
 form div {
-    margin-bottom: 20px;
+    margin-bottom: 2px;
 }
 
 label {
@@ -98,6 +143,15 @@ label {
     margin-bottom: 5px;
     color: #040404;
     font-weight: 700;
+}
+
+div p {
+    text-align: start;
+    font-size: 0.8rem;
+}
+
+.form-data {
+    margin-top: 30px;
 }
 
 input[type=email],
@@ -138,6 +192,7 @@ button[type=submit] {
     cursor: pointer;
     font-weight: 700;
     font-size: 1rem;
+    margin-top: 30px;
     border-radius: 20px;
 }
 
@@ -171,10 +226,15 @@ button {
 .term-condition {
     display: flex;
     align-content: center;
+    flex-direction: column;
+}
+
+.term-checkbox {
+    display: flex;
 }
 
 .term-condition label {
     margin-left: 2px;
-    margin-top: 7px;
+    margin-top: 2px;
 }
 </style>
